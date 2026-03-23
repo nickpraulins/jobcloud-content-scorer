@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JobCloud AIO &amp; GEO Content Scorer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:        #FA463C;
+      --red-dark:   #D93830;
+      --red-glow:   rgba(250,70,60,0.18);
+      --purple:     #321E50;
+      --peach:      #FFAF8C;
+      --burgundy:   #781128;
+      --bg:         #F5F5F7;
+      --surface:    #FFFFFF;
+      --border:     rgba(0,0,0,0.08);
+      --border-mid: rgba(0,0,0,0.13);
+      --text:       #1d1d1f;
+      --text-2:     #3d3d3f;
+      --muted:      #6e6e73;
+      --muted-light:#aeaeb2;
+      --green:      #30B06E;
+      --green-bg:   rgba(48,176,110,0.10);
+      --amber:      #F5820D;
+      --amber-bg:   rgba(245,130,13,0.10);
+      --danger:     #FA463C;
+      --danger-bg:  rgba(250,70,60,0.10);
+      --r-lg: 20px; --r-md: 14px; --r-sm: 10px;
+      --s-sm: 0 2px 8px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+      --s-md: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+      --s-lg: 0 20px 60px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────────── */
+    .hero {
+      background: var(--purple);
+      padding: 4rem 1.5rem 5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 60% at 18% 50%, rgba(250,70,60,0.22) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 70% at 82% 30%, rgba(255,175,140,0.14) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px; padding: 0.3rem 0.9rem;
+      font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 1.5rem; position: relative;
+    }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--peach); }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4.5vw, 3rem);
+      font-weight: 700; letter-spacing: -0.03em; line-height: 1.1;
+      color: #fff; margin-bottom: 1rem; position: relative;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--peach) 0%, var(--red) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub {
+      font-size: 1rem; line-height: 1.7;
+      color: rgba(255,255,255,0.82);
+      max-width: 500px; margin: 0 auto;
+      font-weight: 400; position: relative;
+    }
+
+    /* ── Page ─────────────────────────────────────────────────────── */
+    .page { max-width: 880px; margin: -2.5rem auto 0; padding: 0 1.25rem; position: relative; }
+
+    /* ── Card base ────────────────────────────────────────────────── */
+    .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--s-md); overflow: hidden; }
+
+    /* ── Input card ───────────────────────────────────────────────── */
+    .input-card { margin-bottom: 1.5rem; }
+
+    /* ── Tabs ─────────────────────────────────────────────────────── */
+    .tabs {
+      display: flex; gap: 0.25rem;
+      padding: 1.25rem 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      background: none; border: none;
+      font-family: inherit; font-size: 0.875rem; font-weight: 500;
+      color: var(--muted); padding: 0.55rem 0.9rem;
+      border-radius: var(--r-sm) var(--r-sm) 0 0;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 0.4rem;
+      position: relative;
+    }
+    .tab::after {
+      content: ''; position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 2px; background: var(--red);
+      border-radius: 2px 2px 0 0;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--red); font-weight: 600; }
+    .tab.active::after { opacity: 1; }
+    .tab-panel { display: none; padding: 1.25rem 1.5rem 0; }
+    .tab-panel.active { display: block; }
+
+    /* ── Field label ──────────────────────────────────────────────── */
+    .field-label {
+      font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 0.55rem; display: block;
+    }
+    .field-label small {
+      font-weight: 400; text-transform: none;
+      letter-spacing: 0; opacity: 0.65; font-size: 0.9em;
+    }
+
+    /* ── Textarea ─────────────────────────────────────────────────── */
+    textarea {
+      width: 100%; min-height: 200px;
+      background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: var(--r-md); color: var(--text);
+      font-family: inherit; font-size: 0.9375rem; line-height: 1.7;
+      padding: 1rem 1.1rem; resize: vertical; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    textarea:focus { border-color: var(--red); box-shadow: 0 0 0 4px var(--red-glow); }
+    textarea::placeholder { color: var(--muted-light); }
+    .word-count { font-size: 0.73rem; color: var(--muted-light); text-align: right; margin-top: 0.4rem; }
+
+    /* ── Text input ───────────────────────────────────────────────── */
+    input[type="text"] {
+      width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: var(--r-md); color: var(--text);
+      font-family: inherit; font-size: 0.9rem;
+      padding: 0.65rem 0.9rem; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--red); box-shadow: 0 0 0 4px var(--red-glow); }
+    input[type="text"]::placeholder { color: var(--muted-light); }
+
+    /* ── Upload zone ──────────────────────────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--border-mid);
+      border-radius: var(--r-md); background: var(--bg);
+      padding: 2.5rem 1.5rem; text-align: center; cursor: pointer;
+      transition: all 0.2s; position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over { border-color: var(--red); background: rgba(250,70,60,0.04); }
+    .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 2.2rem; margin-bottom: 0.8rem; line-height: 1; }
+    .upload-title { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.3rem; }
+    .upload-sub { font-size: 0.82rem; color: var(--muted); }
+    .upload-sub strong { color: var(--red); font-weight: 600; }
+
+    .file-loaded {
+      display: none; align-items: center; gap: 0.85rem;
+      background: var(--green-bg); border: 1px solid rgba(48,176,110,0.22);
+      border-radius: var(--r-md); padding: 0.9rem 1.1rem; margin-top: 0.9rem;
+    }
+    .file-loaded.visible { display: flex; }
+    .file-loaded-name { font-size: 0.875rem; font-weight: 600; color: var(--green); flex: 1; }
+    .file-loaded-meta { font-size: 0.73rem; color: var(--muted); margin-top: 1px; }
+    .file-clear {
+      background: none; border: none; color: var(--muted-light);
+      cursor: pointer; font-size: 1rem; padding: 0.25rem;
+      border-radius: 6px; line-height: 1; transition: color 0.15s;
+    }
+    .file-clear:hover { color: var(--danger); }
+
+    /* ── Keyword row ──────────────────────────────────────────────── */
+    .keyword-section { padding: 1.1rem 1.5rem 0; }
+
+    /* ── Button row ───────────────────────────────────────────────── */
+    .btn-row { display: flex; gap: 0.65rem; padding: 1.1rem 1.5rem 1.5rem; }
+    button { cursor: pointer; border: none; font-family: inherit; transition: all 0.2s ease; }
+    .btn-primary {
+      background: var(--red); color: #fff;
+      font-weight: 600; font-size: 0.9375rem;
+      padding: 0.78rem 1.75rem; border-radius: 999px; flex: 1;
+    }
+    .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); box-shadow: 0 6px 20px var(--red-glow); }
+    .btn-primary:active { transform: translateY(0); box-shadow: none; }
+    .btn-secondary {
+      background: var(--bg); color: var(--muted); font-weight: 500; font-size: 0.9rem;
+      padding: 0.78rem 1.25rem; border-radius: 999px; border: 1.5px solid var(--border-mid);
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+
+    /* ── Loading ──────────────────────────────────────────────────── */
+    .loading { display: none; text-align: center; padding: 3.5rem 1rem; color: var(--muted); font-size: 0.9rem; }
+    .spinner {
+      width: 34px; height: 34px; border: 2.5px solid var(--border-mid);
+      border-top-color: var(--red); border-radius: 50%;
+      animation: spin 0.65s linear infinite; margin: 0 auto 1.1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Results ──────────────────────────────────────────────────── */
+    #results { display: none; }
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    @media (max-width: 580px) { .results-grid { grid-template-columns: 1fr; } }
+    .full-width { grid-column: 1 / -1; }
+
+    /* ── Score hero (dark purple) ─────────────────────────────────── */
+    .score-hero {
+      background: var(--purple); border-radius: var(--r-lg); box-shadow: var(--s-lg);
+      padding: 2rem 2.25rem 1.85rem;
+      display: flex; align-items: center; gap: 2.25rem;
+      position: relative; overflow: hidden;
+    }
+    .score-hero::before {
+      content: ''; position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 50% 80% at 92% 50%, rgba(255,175,140,0.12) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 60% at 8% 80%, rgba(250,70,60,0.14) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .dial-wrap { flex-shrink: 0; position: relative; width: 112px; height: 112px; }
+    .dial-svg { width: 112px; height: 112px; transform: rotate(-90deg); }
+    .dial-bg { fill: none; stroke: rgba(255,255,255,0.10); stroke-width: 9; }
+    .dial-fg { fill: none; stroke-width: 9; stroke-linecap: round; transition: stroke-dashoffset 1.1s cubic-bezier(0.34,1.4,0.64,1); }
+    .dial-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .dial-num { font-size: 1.85rem; font-weight: 800; line-height: 1; letter-spacing: -0.03em; color: #fff; }
+    .dial-sub { font-size: 0.65rem; color: rgba(255,255,255,0.55); margin-top: 2px; }
+    .score-meta { flex: 1; position: relative; }
+    .score-grade { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.3rem; color: #fff; }
+    .score-tagline { font-size: 0.875rem; line-height: 1.65; color: rgba(255,255,255,0.82); margin-bottom: 0.9rem; font-weight: 400; }
+    .stat-pills { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .pill {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 999px; padding: 0.22rem 0.72rem;
+      font-size: 0.71rem; color: rgba(255,255,255,0.75);
+    }
+    .pill span { color: #fff; font-weight: 600; }
+    .pill-ok span  { color: #7ef0b8; }
+    .pill-warn span { color: var(--peach); }
+
+    /* ── Radar card ───────────────────────────────────────────────── */
+    .radar-card {
+      background: var(--surface); border-radius: var(--r-lg);
+      box-shadow: var(--s-sm); border: 1px solid var(--border);
+      padding: 1.5rem; display: flex; align-items: center; gap: 2rem;
+    }
+    .radar-wrap { flex-shrink: 0; }
+    .radar-legend { flex: 1; display: flex; flex-direction: column; gap: 0.6rem; }
+    .leg-item { display: flex; align-items: center; gap: 0.65rem; }
+    .leg-label { width: 108px; font-size: 0.74rem; color: var(--muted); flex-shrink: 0; }
+    .leg-bar-bg { flex: 1; background: var(--bg); border-radius: 999px; height: 5px; overflow: hidden; }
+    .leg-bar { height: 100%; border-radius: 999px; transition: width 1s cubic-bezier(0.34,1.2,0.64,1); }
+    .leg-score { width: 26px; text-align: right; font-size: 0.78rem; font-weight: 700; flex-shrink: 0; }
+    @media (max-width: 640px) { .radar-card { flex-direction: column; } .radar-wrap { align-self: center; } }
+
+    /* ── Dimension cards ──────────────────────────────────────────── */
+    .dim-card {
+      background: var(--surface); border-radius: var(--r-lg);
+      box-shadow: var(--s-sm); border: 1px solid var(--border);
+      padding: 1.2rem; transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .dim-card:hover { box-shadow: var(--s-md); transform: translateY(-2px); }
+    .dim-header { display: flex; align-items: flex-start; gap: 0.7rem; margin-bottom: 0.85rem; }
+    .dim-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .dim-title-group { flex: 1; min-width: 0; }
+    .dim-title { font-size: 0.84rem; font-weight: 600; color: var(--text); margin-bottom: 0.1rem; }
+    .dim-sub { font-size: 0.69rem; color: var(--muted); }
+    .dim-badge { font-size: 0.82rem; font-weight: 700; padding: 0.2rem 0.52rem; border-radius: 8px; flex-shrink: 0; }
+    .bar-track { background: var(--bg); border-radius: 999px; height: 5px; overflow: hidden; margin-bottom: 0.7rem; }
+    .bar-fill { height: 100%; border-radius: 999px; transition: width 1.1s cubic-bezier(0.34,1.2,0.64,1); }
+    .dim-feedback { font-size: 0.775rem; color: var(--muted); line-height: 1.6; }
+    .dim-feedback strong { color: var(--text-2); font-weight: 600; }
+
+    /* FK inline detail (readability card) */
+    .fk-row {
+      margin-top: 0.65rem; padding-top: 0.65rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.74rem; color: var(--muted);
+    }
+    .fk-row-head {
+      display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem;
+    }
+    .fk-badge { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 6px; }
+    .fk-components {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .fk-comp {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.35rem 0.6rem;
+      font-size: 0.7rem; flex: 1; min-width: 80px;
+    }
+    .fk-comp-val { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+    .fk-comp-label { color: var(--muted); margin-top: 1px; }
+
+    /* FK standalone in score hero */
+    .fk-standalone {
+      margin-top: 1rem; padding: 0.8rem 1rem;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 12px;
+    }
+    .fk-standalone-head {
+      display: flex; align-items: baseline;
+      justify-content: space-between; margin-bottom: 0.5rem;
+    }
+    .fk-standalone-label {
+      font-size: 0.66rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+    }
+    .fk-standalone-val {
+      font-size: 1.15rem; font-weight: 800;
+      color: #fff; letter-spacing: -0.02em;
+    }
+    .fk-standalone-desc {
+      font-size: 0.71rem; color: rgba(255,255,255,0.7);
+      margin-bottom: 0.6rem;
+    }
+    .fk-scale {
+      position: relative; height: 5px; border-radius: 999px;
+      background: linear-gradient(to right,
+        #30B06E 0%, #30B06E 30%,
+        #F5820D 48%, #FA463C 68%,
+        #781128 100%);
+    }
+    .fk-marker {
+      position: absolute; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 11px; height: 11px;
+      background: #fff; border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+      transition: left 1s cubic-bezier(0.34,1.4,0.64,1);
+    }
+    .fk-scale-ends {
+      display: flex; justify-content: space-between;
+      margin-top: 0.3rem; font-size: 0.58rem;
+      color: rgba(255,255,255,0.38);
+    }
+
+    /* ── Keyword card ─────────────────────────────────────────────── */
+    .kw-card {
+      background: var(--surface); border-radius: var(--r-lg);
+      box-shadow: var(--s-sm); border: 1px solid var(--border);
+      padding: 1.4rem; margin-top: 1rem;
+    }
+    .kw-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .kw-stats { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .kw-stat {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r-sm); padding: 0.5rem 0.8rem;
+      text-align: center; flex: 1; min-width: 68px;
+    }
+    .kw-stat-val { font-size: 1.1rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+    .kw-stat-label { font-size: 0.65rem; color: var(--muted); margin-top: 1px; }
+
+    /* ── Reco card ────────────────────────────────────────────────── */
+    .reco-card {
+      background: var(--surface); border-radius: var(--r-lg);
+      box-shadow: var(--s-sm); border: 1px solid var(--border);
+      padding: 1.5rem; margin-top: 1rem;
+    }
+    .section-eyebrow {
+      font-size: 0.69rem; font-weight: 700;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 1rem;
+    }
+    .reco-list { list-style: none; }
+    .reco-list li {
+      display: flex; gap: 0.75rem; align-items: flex-start;
+      padding: 0.62rem 0; border-bottom: 1px solid var(--border);
+      font-size: 0.855rem; line-height: 1.55; color: var(--text-2);
+    }
+    .reco-list li:last-child { border-bottom: none; }
+    .reco-dot { width: 7px; height: 7px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+
+    /* ── Footer ───────────────────────────────────────────────────── */
+    .footer {
+      text-align: center; padding: 2rem 1rem 3rem;
+      font-size: 0.7rem; color: var(--muted-light);
+      line-height: 1.7;
+    }
+    .footer strong { color: var(--muted); font-weight: 500; }
+
+    /* ── Colour helpers ───────────────────────────────────────────── */
+    .c-green { color: var(--green); } .c-amber { color: var(--amber); } .c-red { color: var(--danger); }
+    .bg-green { background: var(--green-bg); color: var(--green); }
+    .bg-amber { background: var(--amber-bg); color: var(--amber); }
+    .bg-red   { background: var(--danger-bg); color: var(--danger); }
+    .fill-green { background: var(--green); } .fill-amber { background: var(--amber); } .fill-red { background: var(--danger); }
+    .icon-green { background: var(--green-bg); } .icon-amber { background: var(--amber-bg); } .icon-red { background: var(--danger-bg); }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="hero-eyebrow"><div class="hero-dot"></div>JobCloud · Content Intelligence</div>
+    <h1>JobCloud <span>AIO &amp; GEO</span><br>Content Scorer</h1>
+    <p class="hero-sub">Score your article across seven dimensions that AI search engines and generative engines use when selecting, citing, and surfacing content.</p>
+  </div>
+
+  <div class="page">
+
+    <div class="card input-card">
+      <div class="tabs">
+        <button class="tab active" id="tab-paste" onclick="switchTab('paste')">✏️&nbsp; Paste Text</button>
+        <button class="tab" id="tab-upload" onclick="switchTab('upload')">📄&nbsp; Upload HTML File</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-paste">
+        <label class="field-label" for="article-input">Your Article</label>
+        <textarea id="article-input" placeholder="Paste your article here — plain text. Use # or ## for headings and - for bullet points to improve structural scoring…"></textarea>
+        <div class="word-count" id="word-count">0 words</div>
+      </div>
+
+      <div class="tab-panel" id="panel-upload">
+        <label class="field-label">HTML Article File</label>
+        <div class="upload-zone" id="upload-zone"
+             ondragover="handleDragOver(event)" ondragleave="handleDragLeave()" ondrop="handleDrop(event)">
+          <input type="file" accept=".html,.htm" id="file-input" onchange="handleFileSelect(event)" />
+          <div class="upload-icon">📂</div>
+          <div class="upload-title">Drop your HTML file here</div>
+          <div class="upload-sub">or <strong>click to browse</strong> — .html and .htm accepted</div>
+        </div>
+        <div class="file-loaded" id="file-loaded">
+          <span style="font-size:1.3rem">✅</span>
+          <div style="flex:1">
+            <div class="file-loaded-name" id="file-loaded-name"></div>
+            <div class="file-loaded-meta" id="file-loaded-meta"></div>
+          </div>
+          <button class="file-clear" onclick="clearFile()">✕</button>
+        </div>
+      </div>
+
+      <div class="keyword-section">
+        <label class="field-label" for="kw-input">Target Keyword <small>— optional, but recommended</small></label>
+        <input type="text" id="kw-input" placeholder="e.g. school leadership, content strategy, AI in education…" />
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" onclick="analyseArticle()">Analyse Article</button>
+        <button class="btn-secondary" onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+
+    <div class="loading" id="loading"><div class="spinner"></div>Analysing your content…</div>
+
+    <div id="results">
+      <div class="results-grid" id="results-grid"></div>
+      <div id="kw-wrap"></div>
+      <div class="reco-card">
+        <div class="section-eyebrow">Priority Recommendations</div>
+        <ul class="reco-list" id="reco-list"></ul>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <strong>JobCloud AIO &amp; GEO Content Scorer</strong><br>
+    Created by Nick Praulins &nbsp;·&nbsp; AIO/GEO scoring is hypothetical and directional — not a definitive benchmark.<br>
+    Scores reflect published research and practitioner consensus as of early 2025. Readability metrics (FK Grade) are most accurate for English-language content.
+  </div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let activeTab = 'paste', uploadedText = '', uploadedHtmlDoc = null, uploadedFileName = '';
+
+// ─── Tabs / file ─────────────────────────────────────────────────────────────
+function switchTab(t) {
+  activeTab = t;
+  ['paste','upload'].forEach(id => {
+    document.getElementById('tab-'+id).classList.toggle('active', id===t);
+    document.getElementById('panel-'+id).classList.toggle('active', id===t);
+  });
+  document.getElementById('results').style.display = 'none';
+}
+function handleDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag-over'); }
+function handleDragLeave()  { document.getElementById('upload-zone').classList.remove('drag-over'); }
+function handleDrop(e)      { e.preventDefault(); handleDragLeave(); processFile(e.dataTransfer.files[0]); }
+function handleFileSelect(e){ processFile(e.target.files[0]); }
+function processFile(file) {
+  if (!file || !file.name.match(/\.html?$/i)) { alert('Please upload an .html or .htm file.'); return; }
+  uploadedFileName = file.name;
+  const r = new FileReader();
+  r.onload = e => {
+    const parser = new DOMParser();
+    uploadedHtmlDoc = parser.parseFromString(e.target.result, 'text/html');
+    const clone = uploadedHtmlDoc.cloneNode(true);
+    clone.querySelectorAll('script,style,noscript,nav,header,footer,aside').forEach(el => el.remove());
+    uploadedText = ((clone.body||clone.documentElement).innerText||'').replace(/\s{3,}/g,'\n\n').trim();
+    const wc = words(uploadedText).length;
+    document.getElementById('file-loaded-name').textContent = uploadedFileName;
+    document.getElementById('file-loaded-meta').textContent = `${wc} words extracted`;
+    document.getElementById('file-loaded').classList.add('visible');
+  };
+  r.readAsText(file);
+}
+function clearFile() {
+  uploadedText = ''; uploadedHtmlDoc = null; uploadedFileName = '';
+  document.getElementById('file-loaded').classList.remove('visible');
+  document.getElementById('file-input').value = '';
+  document.getElementById('results').style.display = 'none';
+}
+function clearAll() {
+  document.getElementById('article-input').value = '';
+  document.getElementById('word-count').textContent = '0 words';
+  document.getElementById('kw-input').value = '';
+  clearFile();
+}
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function words(t) { return t.trim().split(/\s+/).filter(Boolean); }
+function sentences(t) { return t.split(/[.!?]+/).filter(s => s.trim().length > 3); }
+function clamp(v,lo,hi) { return Math.max(lo, Math.min(hi, v)); }
+function sCol(p) { return p >= 70 ? 'green' : p >= 40 ? 'amber' : 'red'; }
+
+// ─── Flesch-Kincaid (English; noted in footer) ────────────────────────────────
+function syllables(w) {
+  w = w.toLowerCase().replace(/[^a-z]/g,'');
+  if (!w) return 0;
+  if (w.length <= 3) return 1;
+  const m = w.replace(/e$/,'').match(/[aeiouy]+/g);
+  return Math.max(1, m ? m.length : 1);
+}
+function fkGrade(text) {
+  const ws = words(text), ss = sentences(text);
+  if (!ws.length || !ss.length) return 0;
+  const syl = ws.reduce((a,w) => a + syllables(w), 0);
+  return Math.max(0, Math.round((0.39*(ws.length/ss.length) + 11.8*(syl/ws.length) - 15.59) * 10) / 10);
+}
+function fkCol(g) { return g <= 8 ? 'green' : g <= 11 ? 'amber' : 'red'; }
+function fkDesc(g) {
+  if (g <= 8)  return 'Excellent for AI — highly accessible';
+  if (g <= 11) return 'Acceptable — moderate complexity';
+  return 'Too complex — aim to simplify';
+}
+
+// Returns per-article FK diagnostics and specific fix recommendations
+function fkDetails(text) {
+  const ws = words(text), ss = sentences(text);
+  if (!ws.length || !ss.length) return { asl:0, spw:0, longSents:0, complexPct:0, notes:[] };
+  const asl    = ws.length / ss.length;
+  const sylArr = ws.map(w => syllables(w));
+  const spw    = sylArr.reduce((a,b)=>a+b,0) / ws.length;
+  const longSents   = text.split(/[.!?]+/).filter(s => words(s).length > 22).length;
+  const complexWords = ws.filter((_,i) => sylArr[i] >= 3).length;
+  const complexPct  = Math.round((complexWords / ws.length) * 100);
+  const notes = [];
+  if (asl > 20)
+    notes.push(`Sentence length: your average is ${Math.round(asl)} words — target is 15–20. Try splitting any sentence over 22 words into two shorter ones.`);
+  if (longSents > 0)
+    notes.push(`${longSents} sentence${longSents>1?'s':''} exceed${longSents===1?'s':''} 22 words — these are the main drag on your FK grade. Find and split them first.`);
+  if (spw > 1.65)
+    notes.push(`Word complexity: ${spw.toFixed(1)} syllables per word on average — swap polysyllabic words (3+ syllables) for simpler alternatives to lower the grade level.`);
+  if (complexPct > 14)
+    notes.push(`${complexPct}% of your words have 3+ syllables — above the ~10% typical of Grade 8 content. Scan for academic or technical vocabulary that could be simplified.`);
+  return { asl: Math.round(asl*10)/10, spw: Math.round(spw*100)/100, longSents, complexPct, notes };
+}
+
+// ─── Scoring functions (language-agnostic where possible) ─────────────────────
+
+// 1 · Structural Clarity — universal: headings, lists, paragraphs
+function scoreStructure(text, doc) {
+  let h1, h2, subs, lists, paras;
+  if (doc) {
+    h1    = doc.querySelectorAll('h1').length > 0;
+    h2    = doc.querySelectorAll('h2').length > 0;
+    subs  = doc.querySelectorAll('h2,h3,h4').length;
+    lists = doc.querySelectorAll('li').length;
+    paras = doc.querySelectorAll('p').length;
+  } else {
+    h1    = /^#{1,2}\s.+/m.test(text) || /^[^\s].{3,60}$/m.test(text.split('\n')[0]);
+    h2    = /^#{2,4}\s.+/m.test(text);
+    subs  = (text.match(/^#{2,4}\s.+/mg)||[]).length;
+    lists = (text.match(/^\s*[-*•]\s.+/mg)||[]).length + (text.match(/^\s*\d+[.)]\s.+/mg)||[]).length;
+    paras = (text.match(/\n\s*\n/g)||[]).length;
+  }
+  let s = 0;
+  if (h1) s += 25; if (h2) s += 20;
+  s += clamp(subs*8,0,25) + clamp(lists*(doc?2:3),0,20) + clamp(paras*(doc?1:2),0,10);
+  const n = [];
+  if (!h1) n.push('Add a clear title/H1 heading — AI parsers use this to anchor the topic.');
+  if (!h2) n.push('Break content into sections with subheadings (H2/H3).');
+  if (lists < 3) n.push('Include at least one bulleted or numbered list.');
+  if (paras < 2) n.push('Separate ideas into distinct paragraphs with clear breaks.');
+  return { score: clamp(s,0,100), notes: n };
+}
+
+// 2 · Direct Answer Signals — structural (position + punctuation), largely language-agnostic
+function scoreDirectAnswer(text) {
+  const paras = text.trim().split(/\n\s*\n/).filter(Boolean);
+  const first = paras[0] || '';
+  const last  = paras[paras.length-1] || '';
+  // Short, declarative opening para = direct answer signal
+  const shortOpener = words(first).length < 60 && words(first).length > 5;
+  // Colon or dash in first para (definitional structure common across languages)
+  const hasColon = /[:—–]/.test(first);
+  // Multiple definition-style sentences (≥2 sentences ≤ 20 words each in first para)
+  const defSentences = sentences(first).filter(s => words(s).length <= 20).length;
+  // Short closing para = summary signal
+  const shortCloser = words(last).length < 80 && paras.length > 2;
+  // Presence of lists (answer containers)
+  const hasList = /^\s*[-*•\d]/m.test(text);
+
+  let s = 0;
+  if (shortOpener) s += 20;
+  if (hasColon)    s += 20;
+  if (defSentences >= 2) s += 20;
+  if (shortCloser) s += 20;
+  if (hasList)     s += 20;
+
+  const n = [];
+  if (!shortOpener) n.push('Open with a concise, direct paragraph (under 60 words) that answers the core question immediately.');
+  if (!hasColon)    n.push('Use a colon or em dash early on to introduce a definition or key concept.');
+  if (!shortCloser) n.push('Add a short concluding paragraph that summarises the key takeaway.');
+  return { score: clamp(s,0,100), notes: n };
+}
+
+// 3 · Factual Density — numbers and citation signals (universal)
+function scoreFactual(text) {
+  const nums  = (text.match(/\b\d[\d,.]*/g)||[]).length;
+  const pcts  = (text.match(/\d+(\.\d+)?%/g)||[]).length;
+  const yrs   = (text.match(/\b(19|20)\d{2}\b/g)||[]).length;
+  const cites = (text.match(/\b(according to|research|study|report|survey|found that|data|evidence|source|cited|per|based on)\b/gi)||[]).length;
+  const wc    = words(text).length || 1;
+  const density = (nums + pcts*2 + yrs + cites*3) / (wc/100);
+  const n = [];
+  if (nums < 3)   n.push('Add specific statistics, figures, or data points to support your claims.');
+  if (pcts === 0) n.push('Include percentage-based evidence where relevant.');
+  if (cites < 2)  n.push('Reference credible sources ("According to…", "A 2024 study found…").');
+  return { score: clamp(density*12,0,100), notes: n };
+}
+
+// 4 · Readability — sentence/word length (universal); FK noted as English-specific
+function scoreReadability(text) {
+  const ws = words(text), ss = sentences(text);
+  const asl = ws.length / (ss.length||1);
+  const awl = ws.length ? ws.reduce((a,b) => a + b.replace(/[^a-zA-Z\u00C0-\u024F]/g,'').length, 0) / ws.length : 0;
+  const aslS = asl>=10&&asl<=20 ? 100 : asl<10 ? 70 : asl<=28 ? clamp(100-(asl-20)*8,0,100) : 20;
+  const awlS = awl>=4&&awl<=6.5 ? 100 : awl<4 ? 70 : clamp(100-(awl-6.5)*14,0,100);
+  const n = [];
+  if (asl > 25) n.push(`Average sentence length is ${Math.round(asl)} words — aim for 15–20 for AI scannability.`);
+  if (awl > 6.5) n.push('Simplify vocabulary where possible; AI engines favour plain, precise language.');
+  if (asl < 8)  n.push('Some sentences may be too short; vary length for natural flow.');
+  return { score: Math.round((aslS+awlS)/2), notes: n };
+}
+
+// 5 · Question Coverage — question marks + structural breadth (language-agnostic)
+function scoreQuestions(text) {
+  // Count explicit questions (?)
+  const qCount = (text.match(/\?/g)||[]).length;
+  // Count paragraphs (more = more angles covered)
+  const paraCount = text.trim().split(/\n\s*\n/).filter(Boolean).length;
+  // Colons / dashes (explanation signals)
+  const explainCount = (text.match(/[:—–]/g)||[]).length;
+  // Numbered lists (sequential / how-to signals)
+  const numberedList = /^\s*\d+[.)]\s/m.test(text);
+
+  let s = 0;
+  s += clamp(qCount * 15, 0, 30);          // questions present
+  s += clamp(paraCount * 4, 0, 25);        // breadth of coverage
+  s += clamp(explainCount * 3, 0, 25);     // definitional / explanatory signals
+  if (numberedList) s += 20;               // how-to / step signal
+
+  const n = [];
+  if (qCount < 2)      n.push('Include at least 2–3 direct questions in the article (or in subheadings) to signal Q&A coverage to AI.');
+  if (paraCount < 4)   n.push('More distinct paragraphs improve topical breadth — aim for at least 5–6 paragraphs.');
+  if (!numberedList)   n.push('A numbered list signals step-by-step coverage, which generative engines favour for "how" queries.');
+  return { score: clamp(s,0,100), notes: n };
+}
+
+// 6 · Semantic Richness — type-token ratio + named entities (language-agnostic)
+function scoreSemantic(text) {
+  const ws = words(text).map(w => w.toLowerCase().replace(/[^\p{L}]/gu, '')).filter(w => w.length > 2);
+  const unique = new Set(ws).size;
+  const ttr = unique / (ws.length || 1);
+  // Named entities: capitalised mid-sentence words (works across scripts/languages)
+  const entities = (text.match(/(?<=[.!?\n]\s{0,3}|^)\s*(?:[A-Z\u00C0-\u024F][a-z\u00C0-\u024F]+\s){1,3}[A-Z\u00C0-\u024F]/gm)||[]).length
+                 + (text.match(/(?<![.!?\n])\s[A-Z\u00C0-\u024F][a-z\u00C0-\u024F]+(?:\s[A-Z\u00C0-\u024F][a-z\u00C0-\u024F]+)+/g)||[]).length;
+  let s = clamp(ttr*190,0,70) + clamp(entities*1.5,0,30);
+  const n = [];
+  if (ttr < 0.42)   n.push('Vocabulary is repetitive — vary your terminology to improve semantic coverage.');
+  if (entities < 4) n.push('Name specific people, organisations, tools, or places — entity richness signals authority to AI engines.');
+  if (unique < 55)  n.push('Expand topic coverage with related concepts, synonyms, and examples.');
+  return { score: clamp(Math.round(s),0,100), notes: n };
+}
+
+// 7 · Content Completeness — word count + structural markers (language-agnostic)
+function scoreCompleteness(text) {
+  const wc = words(text).length;
+  const wcS = wc<200 ? Math.round((wc/200)*40)
+    : wc<=800  ? 60+Math.round(((wc-200)/600)*30)
+    : wc<=1800 ? 90+Math.round(((wc-800)/1000)*10)
+    : clamp(100-Math.round((wc-1800)/200),60,100);
+  const paras = text.trim().split(/\n\s*\n/).filter(Boolean);
+  // Intro = first para is short and scene-setting
+  const hasIntro = paras.length > 1 && words(paras[0]).length < 120;
+  // Conclusion = last para is relatively short
+  const hasConcl = paras.length > 2 && words(paras[paras.length-1]).length < 100;
+  // Questions present
+  const hasFAQ = (text.match(/\?/g)||[]).length >= 2;
+  const s = clamp(wcS+(hasIntro?5:0)+(hasConcl?5:0)+(hasFAQ?5:0),0,100);
+  const n = [];
+  if (wc < 300)  n.push(`At ${wc} words, this is quite short. Aim for 600–1,500 words for substantive GEO-ready content.`);
+  if (wc > 2500) n.push('Very long articles can dilute focus — consider whether all content earns its place.');
+  if (!hasIntro) n.push('Add a brief opening paragraph that frames the article\'s scope.');
+  if (!hasConcl) n.push('Include a short conclusion or key takeaways section.');
+  return { score: s, notes: n };
+}
+
+// ─── Keyword Alignment ────────────────────────────────────────────────────────
+function scoreKeyword(text, kw, doc) {
+  if (!kw) return null;
+  const k = kw.trim().toLowerCase();
+  const lc = text.toLowerCase();
+  const paras = text.trim().split(/\n\s*\n/).filter(Boolean);
+  const inFirst = (paras[0]||'').toLowerCase().includes(k);
+  let inH1 = false, inSubs = false;
+  if (doc) {
+    const h1 = doc.querySelector('h1');
+    if (h1) inH1 = h1.textContent.toLowerCase().includes(k);
+    doc.querySelectorAll('h2,h3').forEach(h => { if (h.textContent.toLowerCase().includes(k)) inSubs = true; });
+  } else {
+    const h1m = text.match(/^#{1,2}\s(.+)/m);
+    if (h1m) inH1 = h1m[1].toLowerCase().includes(k);
+    (text.match(/^#{2,4}\s(.+)/mg)||[]).forEach(s => { if (s.toLowerCase().includes(k)) inSubs = true; });
+  }
+  const re  = new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+  const occ = (lc.match(re)||[]).length;
+  const density = (occ / (words(text).length||1)) * 100;
+  let s = 0;
+  if (inH1)    s += 30;
+  if (inFirst) s += 25;
+  if (inSubs)  s += 20;
+  if (density >= 0.5 && density <= 2.5) s += 25;
+  else if (occ > 0) s += 10;
+  const n = [];
+  if (!inH1)    n.push(`Include "${kw}" in your H1/title heading.`);
+  if (!inFirst) n.push(`Mention "${kw}" in the opening paragraph.`);
+  if (!inSubs)  n.push(`Work "${kw}" into at least one subheading.`);
+  if (occ === 0)          n.push(`"${kw}" does not appear in the article at all.`);
+  else if (density < 0.5) n.push(`Keyword density is ${density.toFixed(1)}% — slightly low. Aim for 0.5–2.5%.`);
+  else if (density > 3)   n.push(`Keyword appears ${occ} times (${density.toFixed(1)}%) — this may signal over-optimisation.`);
+  return { score: clamp(s,0,100), notes: n, occ, density: density.toFixed(1), inH1, inFirst, inSubs };
+}
+
+// ─── Dimension config ─────────────────────────────────────────────────────────
+const DIMS = [
+  { key:'structure',    label:'Structural Clarity',    sub:'Headings, lists, paragraphs',              icon:'📐', w:0.18 },
+  { key:'directAnswer', label:'Direct Answer Signals', sub:'Opening clarity, definitions, conclusions',icon:'🎯', w:0.16 },
+  { key:'factual',      label:'Factual Density',       sub:'Data, statistics, citations',              icon:'📊', w:0.16 },
+  { key:'completeness', label:'Content Completeness',  sub:'Word count, intro, conclusion',            icon:'✅', w:0.10 },
+  { key:'questions',    label:'Question Coverage',     sub:'Questions, explanations, how-to signals',  icon:'❓', w:0.15 },
+  { key:'semantic',     label:'Semantic Richness',     sub:'Vocabulary diversity, named entities',     icon:'🧠', w:0.10 },
+  { key:'readability',  label:'Readability',           sub:'Sentence length, word complexity',         icon:'📖', w:0.15 },
+];
+const RADAR_SHORT = ['Structure','Direct Ans.','Factual','Complete','Questions','Semantic','Readability'];
+const DIAL_COL = { green:'#5de0a0', amber:'#FFAF8C', red:'#FA463C' };
+
+function runDim(key, text, doc) {
+  switch(key) {
+    case 'structure':    return scoreStructure(text, doc);
+    case 'directAnswer': return scoreDirectAnswer(text);
+    case 'factual':      return scoreFactual(text);
+    case 'readability':  return scoreReadability(text);
+    case 'questions':    return scoreQuestions(text);
+    case 'semantic':     return scoreSemantic(text);
+    case 'completeness': return scoreCompleteness(text);
+  }
+}
+
+function gradeOf(s) {
+  if (s>=85) return { label:'Excellent — AI-Ready',    c:'green', tag:'Well-structured, factually rich, and highly likely to be cited by generative engines.' };
+  if (s>=70) return { label:'Good — Minor Gaps',       c:'green', tag:'Strong content with a few areas to sharpen. A targeted revision should reach the excellent range.' };
+  if (s>=55) return { label:'Fair — Needs Work',       c:'amber', tag:'The foundations are there, but gaps in structure, evidence, or coverage will reduce AI visibility.' };
+  if (s>=35) return { label:'Weak — Significant Gaps', c:'amber', tag:'This content is unlikely to rank well in AI-generated responses. Substantial revision is needed.' };
+  return      { label:'Poor — Not AI-Ready',           c:'red',   tag:'This article is missing most of the signals generative engines rely on. Consider a full restructure.' };
+}
+
+// ─── Radar SVG ────────────────────────────────────────────────────────────────
+function buildRadar(scores) {
+  const N=scores.length, cx=150, cy=145, r=90;
+  const ang = (i) => (i/N)*2*Math.PI - Math.PI/2;
+  const pt  = (i,f) => [cx+r*f*Math.cos(ang(i)), cy+r*f*Math.sin(ang(i))];
+  const poly = (f) => scores.map((_,i)=>{ const [x,y]=pt(i,f); return `${i?'L':'M'}${x.toFixed(1)},${y.toFixed(1)}`; }).join('')+'Z';
+  const rings = [.25,.5,.75,1].map(f=>`<path d="${poly(f)}" fill="none" stroke="rgba(0,0,0,0.055)" stroke-width="1"/>`).join('');
+  const axes  = scores.map((_,i)=>{ const[x,y]=pt(i,1); return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>`; }).join('');
+  const shape = scores.map((s,i)=>{ const[x,y]=pt(i,s/100); return `${i?'L':'M'}${x.toFixed(1)},${y.toFixed(1)}`; }).join('')+'Z';
+  const dots  = scores.map((s,i)=>{ const[x,y]=pt(i,s/100); const c=s>=70?'#30B06E':s>=40?'#F5820D':'#FA463C'; return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="${c}" stroke="white" stroke-width="1.5"/>`; }).join('');
+  const labs  = scores.map((_,i)=>{
+    const a=ang(i), lx=cx+(r+26)*Math.cos(a), ly=cy+(r+26)*Math.sin(a);
+    const anchor=Math.cos(a)>0.15?'start':Math.cos(a)<-0.15?'end':'middle';
+    const dy=Math.sin(a)<-0.45?-4:Math.sin(a)>0.45?10:4;
+    return `<text x="${lx.toFixed(1)}" y="${(ly+dy-2).toFixed(1)}" text-anchor="${anchor}" font-size="9.5" fill="#6e6e73" font-family="-apple-system,sans-serif" font-weight="500">${RADAR_SHORT[i]}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 300 290" width="272" height="264" id="radar-svg">${rings}${axes}<path d="${shape}" fill="rgba(250,70,60,0.09)" stroke="#FA463C" stroke-width="2" stroke-linejoin="round"/>${dots}${labs}</svg>`;
+}
+
+function animateRadar(scores, containerId) {
+  const el=document.getElementById(containerId), t0=performance.now(), dur=900;
+  (function tick(now){ const p=Math.min((now-t0)/dur,1), e=1-Math.pow(1-p,3);
+    el.innerHTML=buildRadar(scores.map(s=>s*e));
+    if(p<1) requestAnimationFrame(tick);
+  })(t0);
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+function analyseArticle() {
+  const text = activeTab==='paste' ? document.getElementById('article-input').value : uploadedText;
+  const doc  = activeTab==='upload' ? uploadedHtmlDoc : null;
+  const kw   = document.getElementById('kw-input').value.trim();
+
+  if (!text || text.trim().length < 30) {
+    alert(activeTab==='paste' ? 'Please paste an article of at least a few sentences.' : 'Please upload an HTML file first.');
+    return;
+  }
+
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+
+  setTimeout(() => {
+    const results = DIMS.map(d => { const {score,notes}=runDim(d.key,text,doc); return {...d,score:Math.round(score),notes}; });
+    const overall = Math.round(results.reduce((s,r)=>s+r.score*r.w,0));
+    const wc = words(text).length, sc = sentences(text).length;
+    const fk  = fkGrade(text);
+    const fkD = fkDetails(text);
+    const kwR = kw ? scoreKeyword(text,kw,doc) : null;
+    const g   = gradeOf(overall);
+
+    const recos = [];
+    if (kwR) kwR.notes.forEach(n=>recos.push({note:n,c:sCol(kwR.score)}));
+    [...results].sort((a,b)=>a.score-b.score).forEach(r=>r.notes.forEach(n=>recos.push({note:n,c:sCol(r.score)})));
+    // FK-specific fix recommendations (prepend with grade label so they stand out)
+    if (fk > 8) fkD.notes.forEach(n=>recos.push({note:`FK Grade ${fk} — ${n}`, c:fkCol(fk), fk:true}));
+
+    renderAll(overall,wc,sc,fk,fkD,g,results,recos,kwR,kw,activeTab==='upload'?uploadedFileName:null);
+    document.getElementById('loading').style.display='none';
+    document.getElementById('results').style.display='block';
+    document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+  }, 650);
+}
+
+function renderAll(overall,wc,sc,fk,fkD,g,dims,recos,kwR,kwText,filename) {
+  const circ=2*Math.PI*50, offset=circ-(overall/100)*circ, dc=DIAL_COL[g.c];
+  const fkC=fkCol(fk);
+
+  document.getElementById('results-grid').innerHTML = `
+    <!-- Score hero -->
+    <div class="score-hero full-width">
+      <div class="dial-wrap">
+        <svg class="dial-svg" viewBox="0 0 120 120">
+          <circle class="dial-bg" cx="60" cy="60" r="50"/>
+          <circle class="dial-fg" id="dial-fg" cx="60" cy="60" r="50"
+            stroke="${dc}" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
+        </svg>
+        <div class="dial-label"><span class="dial-num" id="score-num">0</span><span class="dial-sub">/ 100</span></div>
+      </div>
+      <div class="score-meta">
+        <div class="score-grade" style="color:${dc}">${g.label}</div>
+        <div class="score-tagline">${g.tag}</div>
+        <div class="stat-pills">
+          <div class="pill"><span>${wc}</span> words</div>
+          <div class="pill"><span>${sc}</span> sentences</div>
+          ${filename?`<div class="pill">HTML <span>${filename}</span></div>`:''}
+          ${kwText?`<div class="pill">🔑 <span>${kwText}</span></div>`:''}
+        </div>
+        <div class="fk-standalone">
+          <div class="fk-standalone-head">
+            <span class="fk-standalone-label">Flesch-Kincaid Grade Level</span>
+            <span class="fk-standalone-val">${fk}</span>
+          </div>
+          <div class="fk-standalone-desc">${fkDesc(fk)} &nbsp;·&nbsp; avg ${fkD.asl} words/sentence &nbsp;·&nbsp; ${fkD.spw} syllables/word</div>
+          <div class="fk-scale"><div class="fk-marker" id="fk-marker" style="left:0%"></div></div>
+          <div class="fk-scale-ends"><span>Grade 1 · Easy</span><span>Grade 18 · Very complex</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Radar chart -->
+    <div class="radar-card full-width">
+      <div class="radar-wrap" id="radar-wrap"></div>
+      <div class="radar-legend">
+        ${dims.map(d=>{const c=sCol(d.score);return `<div class="leg-item">
+          <span class="leg-label">${d.label.replace(' Signals','').replace('Structural ','').replace(' Coverage','').replace('Content ','')}</span>
+          <div class="leg-bar-bg"><div class="leg-bar fill-${c}" style="width:0%" data-w="${d.score}%"></div></div>
+          <span class="leg-score c-${c}">${d.score}</span>
+        </div>`;}).join('')}
+      </div>
+    </div>
+
+    <!-- Dimension cards -->
+    ${dims.map((d,i)=>{const c=sCol(d.score),isRead=d.key==='readability',isLast=i===dims.length-1;return `<div class="dim-card${isLast?' full-width':''}">`+`
+      <div class="dim-header">
+        <div class="dim-icon icon-${c}">${d.icon}</div>
+        <div class="dim-title-group"><div class="dim-title">${d.label}</div><div class="dim-sub">${d.sub}</div></div>
+        <div class="dim-badge bg-${c}">${d.score}</div>
+      </div>
+      <div class="bar-track"><div class="bar-fill fill-${c}" style="width:0%" data-width="${d.score}%"></div></div>
+      <div class="dim-feedback">${d.notes.length===0?'✓ <strong>All checks passed</strong> — this dimension looks solid.':d.notes.map(n=>`<strong>→</strong> ${n}`).join('<br/>')}</div>
+      ${isRead?`<div class="fk-row">
+        <div class="fk-row-head"><span class="fk-badge bg-${fkC}">FK Grade ${fk}</span><span style="font-size:0.72rem">${fkDesc(fk)}</span></div>
+        <div class="fk-components">
+          <div class="fk-comp">
+            <div class="fk-comp-val" style="color:${fkD.asl<=20?'var(--green)':fkD.asl<=25?'var(--amber)':'var(--danger)'}">${fkD.asl}</div>
+            <div class="fk-comp-label">words/sentence<br><span style="opacity:.6">target: 15–20</span></div>
+          </div>
+          <div class="fk-comp">
+            <div class="fk-comp-val" style="color:${fkD.spw<=1.5?'var(--green)':fkD.spw<=1.7?'var(--amber)':'var(--danger)'}">${fkD.spw}</div>
+            <div class="fk-comp-label">syllables/word<br><span style="opacity:.6">target: ≤ 1.5</span></div>
+          </div>
+          <div class="fk-comp">
+            <div class="fk-comp-val" style="color:${fkD.complexPct<=12?'var(--green)':fkD.complexPct<=18?'var(--amber)':'var(--danger)'}">${fkD.complexPct}%</div>
+            <div class="fk-comp-label">complex words<br><span style="opacity:.6">target: ≤ 12%</span></div>
+          </div>
+        </div>
+      </div>`:''}
+
+    </div>`;}).join('')}
+  `;
+
+  // Animate dial
+  setTimeout(()=>{
+    document.getElementById('dial-fg').style.strokeDashoffset=offset;
+    let v=0; const step=Math.ceil(overall/40);
+    const t=setInterval(()=>{ v=Math.min(v+step,overall); document.getElementById('score-num').textContent=v; if(v>=overall)clearInterval(t); },25);
+    // Animate FK scale marker (clamp FK to 0–18 range for position)
+    const fkPct = Math.min(fk/18,1)*100;
+    setTimeout(()=>{ const m=document.getElementById('fk-marker'); if(m) m.style.left=fkPct+'%'; },80);
+  },120);
+
+  // Animate bars
+  setTimeout(()=>{
+    document.querySelectorAll('.bar-fill').forEach(el=>{ el.style.width=el.dataset.width; });
+    document.querySelectorAll('.leg-bar').forEach(el=>{ el.style.width=el.dataset.w; });
+  },180);
+
+  // Animate radar
+  setTimeout(()=>animateRadar(dims.map(d=>d.score),'radar-wrap'),150);
+
+  // Keyword card
+  const kwWrap=document.getElementById('kw-wrap');
+  if (kwR) {
+    const c=sCol(kwR.score);
+    kwWrap.innerHTML=`<div class="kw-card">
+      <div class="kw-header">
+        <span style="font-size:1.3rem">🔑</span>
+        <div style="flex:1">
+          <div style="font-size:.92rem;font-weight:700;color:var(--text)">Keyword Alignment</div>
+          <div style="font-size:.76rem;color:var(--muted)">Target: "${kwText}"</div>
+        </div>
+        <div class="dim-badge bg-${c}">${kwR.score}</div>
+      </div>
+      <div class="kw-stats">
+        <div class="kw-stat"><div class="kw-stat-val">${kwR.occ}</div><div class="kw-stat-label">occurrences</div></div>
+        <div class="kw-stat"><div class="kw-stat-val">${kwR.density}%</div><div class="kw-stat-label">density</div></div>
+        <div class="kw-stat"><div class="kw-stat-val" style="color:${kwR.inH1?'var(--green)':'var(--danger)'}">${kwR.inH1?'✓':'✗'}</div><div class="kw-stat-label">in H1</div></div>
+        <div class="kw-stat"><div class="kw-stat-val" style="color:${kwR.inFirst?'var(--green)':'var(--danger)'}">${kwR.inFirst?'✓':'✗'}</div><div class="kw-stat-label">in intro</div></div>
+        <div class="kw-stat"><div class="kw-stat-val" style="color:${kwR.inSubs?'var(--green)':'var(--danger)'}">${kwR.inSubs?'✓':'✗'}</div><div class="kw-stat-label">in subheads</div></div>
+      </div>
+      <div class="dim-feedback">${kwR.notes.length?kwR.notes.map(n=>`<strong>→</strong> ${n}`).join('<br/>'):'✓ <strong>Keyword well-placed</strong> — good alignment across headings and body.'}</div>
+    </div>`;
+  } else { kwWrap.innerHTML=''; }
+
+  // Recommendations
+  document.getElementById('reco-list').innerHTML = recos.length===0
+    ? '<li>No specific recommendations — great work!</li>'
+    : recos.slice(0,10).map(r=>`<li>
+        <div class="reco-dot" style="background:${r.c==='green'?'var(--green)':r.c==='amber'?'var(--amber)':'var(--danger)'}"></div>
+        <span>${r.fk?`<span style="font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--${r.c==='green'?'green':r.c==='amber'?'amber':'danger'});margin-right:.35rem;opacity:.8">Readability</span>`:''}${r.note}</span>
+      </li>`).join('');
+}
+
+// ─── Live word count ──────────────────────────────────────────────────────────
+document.getElementById('article-input').addEventListener('input', function() {
+  const n=words(this.value).length;
+  document.getElementById('word-count').textContent=n+' word'+(n!==1?'s':'');
+});
+</script>
+</body>
+</html>
